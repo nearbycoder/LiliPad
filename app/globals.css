@@ -213,3 +213,40 @@ button, a, [role="tab"], [role="switch"] {
     filter: brightness(.94);
   }
 }
+
+/* Sentences stay readable as a whole, with spacious touch tiles for building. */
+.activity-tabs { flex-wrap: wrap; height: auto; }
+.activity-tabs button { min-height: 56px; }
+.sample-word.sentence-sample { font-size: 19px; max-width: 85%; text-align: center; }
+.sentence-stage { padding: 24px; gap: 24px; min-height: 250px; }
+.reading-sentence { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.55; font-weight: 800; text-align: center; color: #345f40; max-width: 640px; text-wrap: pretty; }
+.reading-sentence span { display: inline; border-radius: 6px; box-decoration-break: clone; }
+.reading-sentence span.read { background: #d5e8b9; color: #285b35; }
+.sentence-count { font-size: 16px; color: #526946; text-align: center; }
+.sentence-builder { width: 100%; }
+.sentence-builder h3 { font-size: 24px; font-weight: 800; text-align: center; }
+.sentence-builder > p { font-size: 16px; line-height: 1.6; text-align: center; margin-top: 12px; }
+.sentence-slots, .sentence-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 16px; }
+.sentence-slots { min-height: 104px; background: #fbfdf6; border: 2px dashed #b7cca2; border-radius: 16px; margin-top: 20px; align-items: center; }
+.sentence-slots > span { font-size: 16px; color: #667859; }
+.sentence-slots button, .sentence-bank button { min-height: 64px; min-width: 64px; padding: 12px 18px; border-radius: 12px; border: 2px solid #cadcb9; background: white; color: #345f40; font-size: 22px; font-weight: 800; touch-action: manipulation; }
+.sentence-slots button { background: #deebcf; }
+.sentence-bank button:disabled { opacity: .32; }
+.builder-feedback { min-height: 52px; color: #6d6341; }
+.builder-actions { display: flex; justify-content: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.builder-actions button { min-height: 64px; font-size: 17px; }
+.sentence-phrases { display: flex; flex-wrap: wrap; gap: 12px; }
+.sentence-phrases button { gap: 10px; font-size: 19px; }
+.sentence-collection { margin-top: 20px; }
+.sentence-collection li { font-size: 18px; line-height: 1.6; padding: 12px 0; border-top: 1px solid #e4ebd9; }
+.history-word { overflow-wrap: anywhere; }
+.history-card > div:has(.history-sentence) { flex-wrap: wrap; }
+.history-sentence { flex: 1 1 100%; font-size: 19px; line-height: 1.6; }
+@media(max-width:767px) {
+  .activity-tabs button { flex: 1 1 calc(50% - 6px); }
+  .sentence-stage { padding: 20px 12px; }
+  .reading-sentence { font-size: 30px; }
+  .sentence-slots, .sentence-bank { padding: 12px 0; gap: 10px; }
+  .sentence-slots button, .sentence-bank button { font-size: 20px; padding: 12px 14px; }
+  .builder-actions { flex-direction: column; }
+}

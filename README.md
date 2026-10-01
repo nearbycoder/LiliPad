@@ -1,6 +1,6 @@
 # LiliPad
 
-A gentle reading practice app for Lili (short for Liliana), with a dashboard, three ten-word adventures, spoken hints, celebrations, and device-local progress.
+A gentle reading practice app for Lili (short for Liliana), with a dashboard, six reading adventures, spoken hints, celebrations, and device-local progress.
 
 ## Run locally
 
@@ -14,6 +14,10 @@ npm run dev -- --port 4321
 Open the URL printed by the server. Use `npm test` to check speech segmentation, matching, settings migration, and voice cancellation. Use `npm run typecheck` to check TypeScript and `npm run build` for the production build. The project uses React, Vinext, Tailwind, and the bundled shadcn/Radix UI primitives.
 
 ## Reading and speech
+
+- **Word Hop**, **Sound Safari**, and **Sight Word Stars** each have ten word rounds. **Sentence Pond** has eight short sentences, **Sentence Scramble** has six touch puzzles followed by spoken reading, and **Story Trail** has a connected six-sentence story. Find the new games under **Sentences & stories**.
+- Sentence games accept the whole sentence aloud. They ignore casing and punctuation but require all words in order, rejecting missing, extra, substituted, or reordered words. A one-second pause ends a speech chunk; a correct opening phrase stays highlighted and can be continued after a longer pause. A fresh full sentence can restart a partial attempt. A mismatch, hint, pause, skip, or close clears the unfinished prefix. No star or record is awarded for a partial sentence. Capture is bounded to twelve seconds per chunk and the decoder allows up to 64 tokens for sentence mode.
+- Sentence Scramble uses distinct touch tiles, including duplicate words. Tap words into order, tap a placed word to return it, and check the sentence. Building it does not earn a star; read it aloud afterward. Between puzzles, capture stays held until the next sentence is built; the same microphone then resumes. Sentence hints offer short spoken groups and a whole-sentence example.
 
 - Tap **Let's play Word Hop**, then **Start reading** once. Allow microphone access and read each displayed word. A 320 ms pause after speech triggers recognition automatically. Correct words advance after a 450 ms celebration, and the same microphone keeps listening. Incorrect words automatically accept another attempt. **Pause listening** stops the microphone; **Resume listening** starts it again. Switching away from the tab pauses the session.
 - Open-source **[Moonshine base English](https://huggingface.co/onnx-community/moonshine-base-ONNX)** is the default Careful listening model (~123 MB of weights). Parent corner also offers **[Moonshine tiny English](https://huggingface.co/onnx-community/moonshine-tiny-ONNX)** for Quick listening (~51 MB). Both use an fp32 encoder and q8 decoder through Transformers.js 3.8.1 and single-thread ONNX Runtime Web in a dedicated browser worker. The worker and WASM runtime are hosted with the app; model files download from Hugging Face on first use and use the browser cache.
@@ -32,6 +36,8 @@ On the same 0.52-second spoken “cat” reference clip in the local test browse
 
 The natural-voice update was verified with real Kokoro generation, persistent model/voice cache entries, and cached repeated audio. In the development Chromium browser, short examples took about 1.7–2.0 seconds to generate initially; a repeated clip returned from memory in 0 ms. Longer hints take longer. Actual audio through the microphone capture and recognizer rejected “The word is fin” for thin, accepted “The word is thin,” then accepted duck and advanced twice with one microphone acquisition. All 19 automated tests and TypeScript checks passed.
 
+The sentence update has 29 automated tests covering strict matching, reading pauses, fresh retries, sentence tiles, legacy progress, and segmentation limits, alongside the prior word/voice checks. Browser verification used real synthesized audio through AudioWorklet and Moonshine base. It rejected “The cat is under the mat,” “The cat on the mat,” and “The cat is not on the mat.” It accepted “The cat is” followed after a pause by “On the mat,” then accepted the next full sentence, with one microphone acquisition. Sentence Scramble rejected the wrong order, awarded no star for building alone, advanced after spoken reading, and ignored incoming audio while the next puzzle was unbuilt. Touch tiles were at least 64 × 64 px in the portrait-tablet test viewport. These are development-browser checks, not measurements of Lili's speech on iPad.
+
 Isolated synthetic and [Wiktionary pronunciation recordings](https://en.wiktionary.org/wiki/thin) of thin, fin, and tin exposed recognition errors in both Moonshine sizes. Whisper tiny/base comparison workers also misheard these words and were slower, so they were not added to the app. Carrier phrases helped the synthetic examples but do not guarantee accuracy for a child's voice. This update has not been verified on Lili's iPad or with her recordings; do that before relying on reading feedback.
 
 ## iPad and touch layouts
@@ -40,7 +46,7 @@ Primary controls and navigation are at least 56 px tall; reading controls are 64
 
 ## Progress and settings
 
-Progress and settings are stored under `lilypad.v1` in localStorage in the current browser. There are no accounts or cross-device synchronization. Clearing browser data removes progress. A star is awarded per completed word, including repeated practice; skipping words earns no star. Progress is saved after each success, so ending a round keeps completed words.
+Progress and settings are stored under `lilypad.v1` in localStorage in the current browser. There are no accounts or cross-device synchronization. Clearing browser data removes progress. A star is awarded per completed word or whole sentence, including repeated practice; skipping earns no star. Sentence records store `kind: "sentence"` and the full text in the existing `word` field. Legacy word records remain valid. Word totals and the daily goal count every word in a completed sentence, while stars count completed rounds. Progress lists both practiced words and completed sentences and retains the read-together/source label. Progress is saved after each success, so ending a round keeps completed reading.
 
 Customize word lists, blending chunks, hints, sentences, and accepted homophones in `lib/reading.ts`. Recognition cleanup, recording, and celebrations are in `components/reading-game.tsx`.
 

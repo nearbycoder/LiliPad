@@ -8,7 +8,11 @@ export class VoiceSegments {
   private lengthMs = 0;
   private noise = 0.001;
   private sampleRate: number;
-  constructor(sampleRate: number) {this.sampleRate=sampleRate;}
+  private endQuietMs: number;
+  private maxMs: number;
+  constructor(sampleRate: number, options: { quietMs?: number; maxMs?: number } = {}) {
+    this.sampleRate=sampleRate; this.endQuietMs=options.quietMs??320; this.maxMs=options.maxMs??4000;
+  }
   reset() {
     this.lead=[];this.chunks=[];this.started=false;
     this.voicedMs=0;this.quietMs=0;this.lengthMs=0;
@@ -30,7 +34,7 @@ export class VoiceSegments {
     if(justStarted){this.started=true;this.chunks=this.lead;this.lead=[];}
     this.chunks.push(frame);this.lengthMs+=ms;
     if(voiced){this.voicedMs+=ms;this.quietMs=0;}else this.quietMs+=ms;
-    if(this.quietMs<320&&this.lengthMs<4000)return {started:justStarted};
+    if(this.quietMs<this.endQuietMs&&this.lengthMs<this.maxMs)return {started:justStarted};
     if(this.voicedMs<100){this.reset();return {started:false};}
     const size=this.chunks.reduce((n,c)=>n+c.length,0);
     const joined=new Float32Array(size);let offset=0;

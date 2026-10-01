@@ -1,4 +1,6 @@
-export type Word = { text: string; chunks: string[]; cue: string; sentence: string; aliases?: string[] };
+export type Word = { kind?: "word"; text: string; chunks: string[]; cue: string; sentence: string; aliases?: string[] };
+export type Sentence = { kind: "sentence"; text: string; phrases: string[]; cue: string };
+export type ReadingItem = Word | Sentence;
 export const wordSets: Record<string, Word[]> = {
   "Word Hop": [
     {text:"cat",chunks:["c","a","t"],cue:"Start with the first sound in cup. Add the vowel sound in apple. End with the last sound in hat. Blend them: cat.",sentence:"The cat takes a nap."},
@@ -45,7 +47,73 @@ export function isWordMatch(transcript: string, word: Word): boolean {
   const answer=text.replace(/^(?:the word is |it is |it's |it’s )/,"");
   return [word.text,...(word.aliases??[])].some(w=>clean(w)===answer);
 }
-export type ReadingRecord = {word: string; activity: string; at: string; source: "speech" | "parent"};
+const sentence = (text: string, phrases: string[]): Sentence => ({
+  kind: "sentence", text, phrases,
+  cue: `Read in little groups. ${phrases.join(". ")}.`,
+});
+export const sentenceSets: Record<string, Sentence[]> = {
+  "Sentence Pond": [
+    sentence("The cat is on the mat.", ["The cat", "is on the mat"]),
+    sentence("I can hop like a frog.", ["I can hop", "like a frog"]),
+    sentence("The sun is warm today.", ["The sun", "is warm today"]),
+    sentence("A little duck swims in the pond.", ["A little duck", "swims in the pond"]),
+    sentence("We plant a seed in the garden.", ["We plant a seed", "in the garden"]),
+    sentence("My red boat floats on the water.", ["My red boat", "floats on the water"]),
+    sentence("The green frog jumps over a log.", ["The green frog", "jumps over a log"]),
+    sentence("I like to read with my friend.", ["I like to read", "with my friend"]),
+  ],
+  "Sentence Scramble": [
+    sentence("The frog can jump.", ["The frog", "can jump"]),
+    sentence("I see a red bird.", ["I see", "a red bird"]),
+    sentence("We read a book.", ["We read", "a book"]),
+    sentence("The sun is bright.", ["The sun", "is bright"]),
+    sentence("A fish swims in the pond.", ["A fish swims", "in the pond"]),
+    sentence("My friend has a green hat.", ["My friend", "has a green hat"]),
+  ],
+  "Story Trail": [
+    sentence("A frog finds a little book.", ["A frog finds", "a little book"]),
+    sentence("The book is under a leaf.", ["The book", "is under a leaf"]),
+    sentence("The frog sits by the pond.", ["The frog sits", "by the pond"]),
+    sentence("He reads about a brave duck.", ["He reads about", "a brave duck"]),
+    sentence("The duck helps a lost fish.", ["The duck helps", "a lost fish"]),
+    sentence("The frog shares the book with a friend.", ["The frog shares the book", "with a friend"]),
+  ],
+};
+export function practiceItems(activity: string): ReadingItem[] {
+  return sentenceSets[activity] ?? wordSets[activity] ?? [];
+}
+export function sentenceWords(text: string): string[] {
+  return text.toLowerCase().replace(/[’‘]/g, "'").match(/[a-z0-9]+(?:'[a-z0-9]+)*/g) ?? [];
+}
+export function isSentenceMatch(transcript: string, target: string): boolean {
+  const answer = sentenceWords(transcript);
+  const expected = sentenceWords(target);
+  return expected.length > 0 && answer.length === expected.length && answer.every((word, i) => word === expected[i]);
+}
+/** Keep a correct prefix across reading pauses; a mistake requires a fresh attempt. */
+export function checkSentenceAttempt(transcript: string, target: string, previous: string[] = []): { status: "complete" | "partial" | "retry"; words: string[] } {
+  const expected = sentenceWords(target);
+  const heard = sentenceWords(transcript);
+  const prefix = (words: string[]) => words.length <= expected.length && words.every((word, i) => word === expected[i]);
+  if (!heard.length || !expected.length) return { status: "retry", words: [] };
+  const continued = [...previous, ...heard];
+  const words = prefix(previous) && prefix(continued) ? continued : prefix(heard) ? heard : [];
+  return { status: words.length === expected.length ? "complete" : words.length ? "partial" : "retry", words };
+}
+export function sentenceTiles(text: string): { id: number; text: string }[] {
+  const tiles = text.split(/\s+/).map((text, id) => ({ id, text }));
+  let seed = [...text].reduce((n, letter) => ((n * 31) + letter.charCodeAt(0)) >>> 0, 7);
+  for (let i = tiles.length - 1; i > 0; i--) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const j = seed % (i + 1); [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+  }
+  if (tiles.length > 1 && tiles.every((tile, i) => tile.id === i)) tiles.push(tiles.shift()!);
+  return tiles;
+}
+export type ReadingRecord = {word: string; activity: string; at: string; source: "speech" | "parent"; kind?: "word" | "sentence"};
+export function countReadWords(records: ReadingRecord[]): number {
+  return records.reduce((count, record) => count + (record.kind === "sentence" ? sentenceWords(record.word).length : 1), 0);
+}
 export type Settings = {sound: boolean; assisted: boolean; voice: "natural" | "device"; recognition: "careful" | "quick"};
 export const defaultSettings: Settings = { sound: true, assisted: false, voice: "natural", recognition: "careful" };
 export function readSettings(value: unknown): Settings {

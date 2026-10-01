@@ -22,7 +22,7 @@ async function getModel() {
   return transcriber;
 }
 let chain=Promise.resolve();
-self.onmessage=(event:MessageEvent<{type:"load"|"transcribe";audio?:Float32Array;id?:number;recognition?:"careful"|"quick"}>)=>{
+self.onmessage=(event:MessageEvent<{type:"load"|"transcribe";audio?:Float32Array;id?:number;recognition?:"careful"|"quick";mode?:"word"|"sentence"}>)=>{
   const data=event.data;
   chain=chain.then(async()=>{
     try {
@@ -31,7 +31,7 @@ self.onmessage=(event:MessageEvent<{type:"load"|"transcribe";audio?:Float32Array
       if(data.type==="load"){self.postMessage({type:"ready"});return;}
       if(!data.audio?.length)throw new Error("No speech was received.");
       const started=performance.now();
-      const result=await model(data.audio,{max_new_tokens:12,do_sample:false});
+      const result=await model(data.audio,{max_new_tokens:data.mode==="sentence"?64:12,do_sample:false});
       const output=Array.isArray(result)?result[0]:result;
       self.postMessage({type:"result",id:data.id,text:output.text,inferenceMs:Math.round(performance.now()-started)});
     }catch(error){

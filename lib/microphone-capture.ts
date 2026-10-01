@@ -6,8 +6,8 @@ export class MicrophoneCapture {
   private node: AudioWorkletNode | null=null;
   private source: MediaStreamAudioSourceNode | null=null;
   private segments: VoiceSegments;
-  private constructor(private context:AudioContext,private stream:MediaStream,private onLost:()=>void){this.segments=new VoiceSegments(context.sampleRate);}
-  static async open(onAudio:(audio:Float32Array)=>void,onSpeech:()=>void,onLost:()=>void):Promise<MicrophoneCapture> {
+  private constructor(private context:AudioContext,private stream:MediaStream,private onLost:()=>void,mode:"word"|"sentence"){this.segments=new VoiceSegments(context.sampleRate,mode==="sentence"?{quietMs:1000,maxMs:12000}:{});}
+  static async open(onAudio:(audio:Float32Array)=>void,onSpeech:()=>void,onLost:()=>void,mode:"word"|"sentence"="word"):Promise<MicrophoneCapture> {
     if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error("This browser can't listen continuously. Try Chrome or Edge, or turn on read-together mode.");
     const context=new AudioContext({sampleRate:16000});
     // Start both during the user gesture. Never wait for a model download before permission.
@@ -17,7 +17,7 @@ export class MicrophoneCapture {
     // consonants. Capture is held during spoken hints, so they never become attempts.
     try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:true,channelCount:1},video:false});}
     catch(error){await context.close();throw error;}
-    const capture=new MicrophoneCapture(context,stream,onLost);
+    const capture=new MicrophoneCapture(context,stream,onLost,mode);
     try {
       const resumeError=await resumed;if(resumeError)throw resumeError;
       await context.audioWorklet.addModule("/audio-capture.js");

@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "LiliPad | A little reading adventure",
-  description: "A playful reading adventure for Lili. Practice words, explore sounds, and grow in confidence.",
+  description: "Reading adventures for Lili. Practice words and sentences, build a sentence, and read a little story.",
   other: {
     "codex-preview": "development",
   },

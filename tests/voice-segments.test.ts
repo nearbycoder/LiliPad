@@ -58,3 +58,18 @@ test('resampling preserves duration and values from 48 kHz or 44.1 kHz',()=>{
     assert.equal(result.length,16000);assert.equal(result[1000],.5);
   }
 });
+test('sentence capture tolerates pauses and keeps more than four seconds of speech',()=>{
+ const segments=new VoiceSegments(16000,{quietMs:1000,maxMs:12000});
+ for(let i=0;i<150;i++)assert.equal(segments.push(speech()).audio,undefined);
+ for(let i=0;i<35;i++)assert.equal(segments.push(quiet()).audio,undefined);
+ for(let i=0;i<150;i++)assert.equal(segments.push(speech()).audio,undefined);
+ for(let i=0;i<49;i++)assert.equal(segments.push(quiet()).audio,undefined);
+ assert.equal(segments.push(quiet()).audio?.length,(150+35+150+50)*320);
+});
+test('sentence capture is bounded and resets correctly for the next sentence',()=>{
+ const segments=new VoiceSegments(16000,{quietMs:1000,maxMs:12000});
+ for(let i=0;i<599;i++)assert.equal(segments.push(speech()).audio,undefined);
+ assert.equal(segments.push(speech()).audio?.length,192000);
+ segments.reset();
+ for(let i=0;i<100;i++)assert.equal(segments.push(quiet()).audio,undefined);
+});
