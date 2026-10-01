@@ -26,7 +26,7 @@ export const wordSets: Record<string, Word[]> = {
   ],
   "Sight Word Stars": [
     {text:"the",chunks:["th","e"],cue:"This is a heart word. The T and H work together. Listen to the whole word and try it again.",sentence:"The frog is green."},
-    {text:"said",chunks:["s","ai","d"],cue:"This is a heart word. In this word, A and I sound like the e in egg.",sentence:"Lily said hello."},
+    {text:"said",chunks:["s","ai","d"],cue:"This is a heart word. In this word, A and I sound like the e in egg.",sentence:"Lili said hello."},
     {text:"you",chunks:["y","ou"],cue:"This is a heart word. Y starts the word. O and U sound like oo in moon.",sentence:"You are a kind friend."},
     {text:"was",chunks:["w","a","s"],cue:"This is a heart word. The A and S are the tricky parts. Listen to the whole word.",sentence:"It was a sunny day."},
     {text:"they",chunks:["th","ey"],cue:"The T and H work together. E and Y say the long a sound.",sentence:"They play in the park."},

@@ -13,8 +13,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "LilyPad | A little reading adventure",
-  description: "A playful reading adventure for Lily. Practice words, explore sounds, and grow in confidence.",
+  title: "LiliPad | A little reading adventure",
+  description: "A playful reading adventure for Lili. Practice words, explore sounds, and grow in confidence.",
   other: {
     "codex-preview": "development",
   },

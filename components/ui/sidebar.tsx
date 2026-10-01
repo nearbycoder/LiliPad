@@ -197,7 +197,7 @@ function Sidebar({
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Main navigation</SheetTitle>
-            <SheetDescription>Choose a page in LilyPad.</SheetDescription>
+            <SheetDescription>Choose a page in LiliPad.</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>

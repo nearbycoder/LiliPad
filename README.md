@@ -1,6 +1,6 @@
-# LilyPad
+# LiliPad
 
-A gentle reading practice app for Lily, with a dashboard, three ten-word adventures, spoken hints, celebrations, and device-local progress.
+A gentle reading practice app for Lili (short for Liliana), with a dashboard, three ten-word adventures, spoken hints, celebrations, and device-local progress.
 
 ## Run locally
 
@@ -17,7 +17,7 @@ Open the URL printed by the server. Use `npm test` to check speech segmentation 
 
 - Tap **Let's play Word Hop**, then **Start reading** once. Allow microphone access and read each displayed word. A 320 ms pause after speech triggers recognition automatically. Correct words advance after a 450 ms celebration, and the same microphone keeps listening. Incorrect words automatically accept another attempt. **Pause listening** stops the microphone; **Resume listening** starts it again. Switching away from the tab pauses the session.
 - Open-source **[Moonshine tiny English](https://huggingface.co/onnx-community/moonshine-tiny-ONNX)** (`onnx-community/moonshine-tiny-ONNX`, fp32 encoder and quantized q8 decoder) runs through Transformers.js 3.8.1 and ONNX Runtime Web in a dedicated browser worker. The worker and WASM runtime are hosted with the app; model files download from Hugging Face on first use and use the browser cache.
-- AudioWorklet captures mono PCM directly and resamples it to 16 kHz when necessary. Short speech segments avoid Whisper's fixed-window processing and repeated recording/decoding overhead. The model loads and warms when the adventure opens, instead of reloading per word. The app does not upload or store recordings. Speech recognition is not a pronunciation or reading assessment, and children's voices can be misheard. Test with Lily on the intended device before treating feedback as reliable.
+- AudioWorklet captures mono PCM directly and resamples it to 16 kHz when necessary. Short speech segments avoid Whisper's fixed-window processing and repeated recording/decoding overhead. The model loads and warms when the adventure opens, instead of reloading per word. The app does not upload or store recordings. Speech recognition is not a pronunciation or reading assessment, and children's voices can be misheard. Test with Lili on the intended device before treating feedback as reliable.
 - Whole-word matching ignores casing and punctuation and explicitly supports selected homophones. It rejects partial words and multiword utterances. Recognition is never prompted with the expected answer.
 - Hints temporarily suspend capture, discard any pending answer, and resume listening after playback. Silence and short noise clicks do not create word attempts. Pause, skip, close, and word changes invalidate stale transcripts so they cannot award stars.
 - Hints display word parts and use browser text-to-speech for sound explanations and whole-word examples. Voices and pronunciation vary by device. A local English voice is preferred, but the browser may offer a network voice. Written hints remain available.

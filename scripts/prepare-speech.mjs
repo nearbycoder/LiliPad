@@ -5,7 +5,7 @@ await build({entryPoints:['lib/speech.worker.ts'],outfile:'public/speech/worker.
 for(const file of ['ort-wasm-simd-threaded.jsep.wasm','ort-wasm-simd-threaded.jsep.mjs']) await copyFile(`node_modules/@huggingface/transformers/dist/${file}`,`public/speech/${file}`);
 
 import {readFile,writeFile} from 'node:fs/promises';
-let notices='LilyPad browser speech dependencies\n\n';
+let notices='LiliPad browser speech dependencies\n\n';
 for(const [label,file] of [['Transformers.js','node_modules/@huggingface/transformers/LICENSE'],['ONNX Runtime','licenses/onnxruntime.txt']]) {
   notices+=`${label}\n${await readFile(file,'utf8')}\n\n`;
 }
