@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "predev": "node scripts/prepare-speech.mjs",
     "prebuild": "node scripts/prepare-speech.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

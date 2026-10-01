@@ -22,3 +22,4 @@
 @media(max-width:767px){.welcome-card{display:block;min-height:0}.welcome-copy{width:100%;padding:26px 22px}.welcome-copy h2{font-size:36px}.welcome-copy p{max-width:175px}.welcome-art{position:absolute;right:10px;bottom:100px;width:128px;height:128px;background:none;pointer-events:none}.welcome-art img{width:128px;height:128px;max-width:none;margin:0;transform:none}.welcome-art .art-caption,.welcome-art .art-star{display:none}.welcome-copy .small-pill{max-width:220px;font-size:9px}}
 @media(max-width:350px){.welcome-art{width:100px;height:100px;right:6px}.welcome-art img{width:100px;height:100px}.welcome-copy p{max-width:150px;font-size:13px}.welcome-copy h2{font-size:31px}}
 .reading-dialog{width:min(680px,calc(100% - 24px))!important}
+.mic-button.listening{background:#305f43;border-bottom-color:#244b33}

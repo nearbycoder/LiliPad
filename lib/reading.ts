@@ -2,7 +2,7 @@ export type Word = { text: string; chunks: string[]; cue: string; sentence: stri
 export const wordSets: Record<string, Word[]> = {
   "Word Hop": [
     {text:"cat",chunks:["c","a","t"],cue:"The first sound is kuh, like the start of cup. The middle sound is a, like apple. The last sound is tuh, like the start of top.",sentence:"The cat takes a nap."},
-    {text:"sun",chunks:["s","u","n"],cue:"Start with sss. The middle sound is uh. End with nnn. Blend the sounds together.",sentence:"The sun is warm."},
+    {text:"sun",chunks:["s","u","n"],cue:"Start with sss. The middle sound is uh. End with nnn. Blend the sounds together.",sentence:"The sun is warm.",aliases:["son"]},
     {text:"hop",chunks:["h","o","p"],cue:"Start with huh. The middle sound is the o in hot. End with puh. Now blend them together.",sentence:"A frog can hop."},
     {text:"red",chunks:["r","e","d"],cue:"Start with rrr. The middle sound is eh. End with duh. Blend the sounds together.",sentence:"I have a red hat."},
     {text:"fish",chunks:["f","i","sh"],cue:"Start with fff. The middle sound is the i in insect. S and H together make shhh.",sentence:"The fish swims in the pond."},
@@ -44,5 +44,5 @@ export function isWordMatch(transcript: string, word: Word): boolean {
   return [word.text,...(word.aliases??[])].some(w=>clean(w)===text);
 }
 export type ReadingRecord = {word: string; activity: string; at: string; source: "speech" | "parent"};
-export type Settings = {sound: boolean; assisted: boolean; autoNext: boolean};
+export type Settings = {sound: boolean; assisted: boolean};
 export function localDay(date = new Date()) {return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;}
