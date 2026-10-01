@@ -6,11 +6,16 @@ import { Progress } from "@/components/ui/progress";
 import { MicrophoneCapture } from "@/lib/microphone-capture";
 import { NaturalVoice, type VoiceState } from "@/lib/natural-voice";
 import { SentenceBuilder } from "@/components/sentence-builder";
-import { checkSentenceAttempt, isWordMatch, practiceItems, sentenceWords, type ReadingRecord, type Settings } from "@/lib/reading";
+import { checkSentenceAttempt, isWordMatch, practiceRound, sentenceWords, type ReadingRecord, type Settings } from "@/lib/reading";
 
 type Status="idle"|"loading"|"recording"|"checking"|"correct"|"retry"|"paused"|"error";
-export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;onClose:()=>void;onRead:(record:ReadingRecord)=>void;settings:Settings}) {
-  const words=practiceItems(activity);
+export function ReadingGame({activity,onClose,onRead,settings,position,onAdvance}:{activity:string;onClose:()=>void;onRead:(record:ReadingRecord)=>void;settings:Settings;position:number;onAdvance:(position:number)=>void}) {
+  const [round,setRound]=useState(()=>practiceRound(activity,position));
+  const roundRef=useRef(round);roundRef.current=round;
+  const words=round.items;
+  const wordsRef=useRef(words);wordsRef.current=words;
+  const libraryPosition=useRef(round.start);
+  const onAdvanceRef=useRef(onAdvance);onAdvanceRef.current=onAdvance;
   const [index,setIndex]=useState(0);
   const [status,setStatus]=useState<Status>("idle");
   const [message,setMessage]=useState("");
@@ -57,7 +62,12 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
     if(state.workerBusy||!capture.current)return;
     if(capture.current.listen())transition("recording",text);
   }
+  function savePosition(){
+    const nextPosition=roundRef.current.start+session.current.index+1;
+    if(nextPosition>libraryPosition.current){libraryPosition.current=nextPosition;onAdvanceRef.current(nextPosition);}
+  }
   function next(){
+    savePosition();
     if(advanceTimer.current)clearTimeout(advanceTimer.current);
     invalidate();naturalVoice.current?.stop();window.speechSynthesis?.cancel();session.current.speaking=false;setSpeaking(false);
     const nextIndex=session.current.index+1;session.current.index=nextIndex;
@@ -69,7 +79,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   function celebrate(source:ReadingRecord["source"]){
     const state=session.current;
     if(state.status==="correct"||!state.assembled||state.index>=words.length)return;
-    invalidate();transition("correct","You got it!");setScore(n=>n+1);
+    invalidate();transition("correct","You got it!");setScore(n=>n+1);savePosition();
     if(isSentence)setSentenceRead(sentenceWords(words[state.index].text).length);
     onReadRef.current({word:words[state.index].text,activity,at:new Date().toISOString(),source,kind:isSentence?"sentence":"word"});
     // Allow the chime to finish before listening again; no button or long intermission.
@@ -115,7 +125,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
           if(!pending||data.id!==pending.id||pending.epoch!==state.epoch||pending.index!==state.index||!state.running||state.speaking){
             if(state.status!=="correct")actions.current.resumeFeedback();return;
           }
-          const current=words[state.index];
+          const current=wordsRef.current[state.index];
           if(current.kind==="sentence") {
             const attempt=checkSentenceAttempt(data.text,current.text,state.sentenceWords);
             state.sentenceWords=attempt.words;setSentenceRead(attempt.words.length);
@@ -131,7 +141,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
           } else if(isWordMatch(data.text,current))actions.current.celebrate("speech");
           else {
             setHint(true);
-            const target=words[state.index].text;
+            const target=wordsRef.current[state.index].text;
             transition("retry",data.text.trim()?`I heard “${data.text.trim()}”. Try again, or say “The word is ${target}.”`:`I missed that one. Try again, or say “The word is ${target}.”`);
             // Keep the microphone open and automatically accept another attempt.
             capture.current?.listen();
@@ -200,8 +210,11 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
     resumeTimer.current=setTimeout(()=>actions.current.resumeFeedback(),250);
   }
   function playAgain(){
+    invalidate();
+    const nextRound=practiceRound(activity,libraryPosition.current);
+    roundRef.current=nextRound;wordsRef.current=nextRound.items;setRound(nextRound);
     session.current.index=0;setIndex(0);setScore(0);setHint(false);setTtsError("");session.current.assembled=activity!=="Sentence Scramble";setAssembled(session.current.assembled);transition("idle","");
-    if(!settingsRef.current.assisted&&activity!=="Sentence Scramble")void actions.current.listen();
+    if(!settingsRef.current.assisted&&activity!=="Sentence Scramble")resumeTimer.current=setTimeout(()=>void actions.current.listen(),0);
   }
   const actions=useRef({next,celebrate,resumeFeedback,submitAudio,fail,listen});
   actions.current={next,celebrate,resumeFeedback,submitAudio,fail,listen};
@@ -228,26 +241,27 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   return <Dialog open onOpenChange={open=>{if(!open)onClose();}}>
     <DialogContent className={`reading-dialog ${isSentence?"sentence-dialog":""}`} showCloseButton>
       <div className="game-top"><span className="small-pill"><BookIcon activity={activity}/>{activity.toUpperCase()}</span><span><Star size={16} fill="currentColor"/>{score} {score===1?"star":"stars"}</span></div>
-      <DialogTitle className="game-heading">{finished?"Look at you, little reader!":activity==="Story Trail"?"The frog's little book":isSentence?"Little sentences. Big adventures.":"One word. One happy hop."}</DialogTitle>
+      <DialogTitle className="game-heading">{finished?"Look at you, little reader!":activity==="Story Trail"&&word.kind==="sentence"?word.storyTitle:isSentence?"Little sentences. Big adventures.":"One word. One happy hop."}</DialogTitle>
       <DialogDescription className="game-description">{finished?"You showed up, gave it a try, and helped your reading grow.":!assembled?"Put the words in order, then read your sentence out loud.":settings.assisted?`Read the ${unit} out loud to your grown-up.`:isSentence?"Start once, then read each sentence. You can pause between words.":"Start once, then read each word out loud. I'll keep listening."}</DialogDescription>
+      <p className="library-position">{activity==="Story Trail"?`Story ${Math.floor((round.start%round.librarySize)/6)+1} of ${round.librarySize/6}`:`${isSentence?"Sentences":"Words"} ${round.start%round.librarySize+1}–${round.start%round.librarySize+words.length} of ${round.librarySize}`}</p>
       <Progress value={index/words.length*100} aria-label="Adventure progress"/>
       {finished?<div className="round-finished">
         <img src="/images/frog-reader.png" alt="Your frog friend celebrating" width="230" height="230"/>
         <div className="finish-stars"><Star/><Star/><Star/></div>
         <h3>{score} {unit}{score===1?"":"s"} read. {score} {score===1?"star":"stars"} earned.</h3>
-        <p>{score===0?`It's okay to take your time. Let's give these ${unit}s another try.`:"Every happy hop helps you grow. You should feel proud!"}</p>
-        <div className="game-actions"><button className="primary-button" onClick={playAgain}><RotateCcw size={17}/>Play again</button><button className="secondary-button" onClick={onClose}>Back to my dashboard</button></div>
+        <p>{score===0?`It's okay to take your time. You can keep exploring at your own pace.`:"Every happy hop helps you grow. You should feel proud!"}</p>
+        <div className="game-actions"><button className="primary-button" onClick={playAgain}><RotateCcw size={17}/>{activity==="Story Trail"?"Next story":isSentence?"Next sentences":"Next words"}</button><button className="secondary-button" onClick={onClose}>Back to my dashboard</button></div>
       </div>:<>
         <div className={`word-stage ${isSentence?"sentence-stage":""} ${status==="correct"?"celebrating":""}`}>
-          <span className="word-counter">{activity==="Story Trail"?"PAGE":unit.toUpperCase()} {index+1} OF {words.length}</span>
-          {!assembled?<SentenceBuilder key={index} text={word.text} onBuilt={()=>{
+          <span className="word-counter">{activity==="Story Trail"?"PAGE":unit.toUpperCase()} {activity==="Story Trail"?round.start%6+index+1:index+1} OF {activity==="Story Trail"?6:words.length}</span>
+          {!assembled?<SentenceBuilder key={`${round.start}-${index}`} text={word.text} onBuilt={()=>{
             invalidate();session.current.assembled=true;setAssembled(true);setHint(false);
             transition("idle","You built it! Now read the whole sentence.");
             if(session.current.running)resumeFeedback();
           }}/>:isSentence?<>
             <p className="reading-sentence" aria-label={word.text}>{word.text.split(/\s+/).map((part,i)=><span className={i<sentenceRead?"read":""} key={`${index}-${i}`}>{part}{" "}</span>)}</p>
             <span className="sentence-count">{sentenceRead>0?`${sentenceRead} of ${sentenceWords(word.text).length} words heard`:"Read from the first word to the full stop."}</span>
-          </>:<><span key={index} className="reading-word">{word.text}</span><span className="word-type">{activity==="Sight Word Stars"?"A familiar little word":activity==="Sound Safari"?"Put the sounds together":"You can do this, Lili"}</span></>}
+          </>:<><span key={index} className={`reading-word ${word.text.length>5?"long-word":""}`}>{word.text}</span><span className="word-type">{activity==="Sight Word Stars"?"A familiar little word":activity==="Sound Safari"?"Put the sounds together":"You can do this, Lili"}</span></>}
           {status==="correct"&&<div className="celebration" aria-hidden="true">{Array.from({length:12},(_,i)=><Star key={i} style={{"--angle":`${i*30}deg`,"--distance":`${90+i%3*35}px`} as React.CSSProperties} size={15+i%3*6} fill="currentColor"/>)}</div>}
         </div>
         <div className={`game-feedback ${status}`} aria-live="polite" aria-atomic="true">{status==="correct"?<Check size={22}/>:status==="checking"||status==="loading"?<LoaderCircle size={20} className="spin"/>:status==="retry"?<Heart size={20}/>:null}<p>{message||"Take your time. Your frog friend is cheering you on."}</p></div>
@@ -266,7 +280,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
         </div>}
         {ttsError&&<p className="audio-error" role="status">{ttsError}</p>}
         {!deviceVoice&&(ttsError||voiceState.phase==="error")&&<button className="secondary-button" disabled={speaking} onClick={()=>{setDeviceVoice(true);setTtsError("");naturalVoice.current?.close();naturalVoice.current=null;}}>Use device voice</button>}
-        <div className="game-bottom"><button disabled={speaking||status==="correct"} onClick={()=>speak(isSentence?word.text:`${word.text}.`,.85)}><Volume2 size={16}/>Hear the {unit}</button><span><Heart size={13}/>Every try counts.</span><button disabled={speaking||status==="correct"} onClick={next}>Come back to this<SkipForward size={14}/></button></div>
+        <div className="game-bottom"><button disabled={speaking||status==="correct"} onClick={()=>speak(isSentence?word.text:`${word.text}.`,.85)}><Volume2 size={16}/>Hear the {unit}</button><span><Heart size={13}/>Every try counts.</span><button disabled={speaking||status==="correct"} onClick={next}>Skip for now<SkipForward size={14}/></button></div>
       </>}
     </DialogContent>
   </Dialog>;

@@ -10,7 +10,7 @@ import { ReadingGame } from "@/components/reading-game";
 import { NavigationButton } from "@/components/navigation-button";
 import { ParentCorner } from "@/components/parent-corner";
 import { LearningProgress, Rewards } from "@/components/learning-progress";
-import { countReadWords, defaultSettings, readSettings, localDay, type ReadingRecord, type Settings as ReadingSettings } from "@/lib/reading";
+import { countReadWords, defaultSettings, readSettings, readLibraryPositions, practiceItems, localDay, type ReadingRecord, type Settings as ReadingSettings } from "@/lib/reading";
 
 const activities = [
   { title: "Word Hop", category: "words", tag: "START HERE", description: "Little words. Big adventures.\nRead a word and hop ahead!", icon: BookOpen, color: "mint", skill: "Everyday words", time: "5 min", button: "Let's play", sample: "cat" },
@@ -18,7 +18,7 @@ const activities = [
   { title: "Sight Word Stars", category: "words", tag: "SHINE BRIGHT", description: "Meet the words you see all the time.\nMake each one a familiar friend.", icon: Star, color: "lavender", skill: "Sight words", time: "5 min", button: "Let's shine", sample: "the" },
   { title: "Sentence Pond", category: "sentences", tag: "READ IT ALL", description: "Little words come together.\nRead a whole sentence and hop ahead!", icon: BookMarked, color: "mint", skill: "Whole sentences", time: "5 min", button: "Let's read sentences", sample: "I can hop." },
   { title: "Sentence Scramble", category: "sentences", tag: "BUILD & READ", description: "Tap the words into place.\nThen read your sentence out loud.", icon: Sparkles, color: "peach", skill: "Word order", time: "5 min", button: "Let's build a sentence", sample: "can · frog · jump" },
-  { title: "Story Trail", category: "sentences", tag: "A LITTLE STORY", description: "Follow a frog and his little book.\nRead the story one sentence at a time.", icon: BookOpen, color: "lavender", skill: "Reading a story", time: "5 min", button: "Let's read a story", sample: "A little book." },
+  { title: "Story Trail", category: "sentences", tag: "A LITTLE STORY", description: "Meet animal friends on new adventures.\nRead the story one sentence at a time.", icon: BookOpen, color: "lavender", skill: "Reading a story", time: "5 min", button: "Let's read a story", sample: "A little book." },
 ];
 
 export default function Home() {
@@ -26,13 +26,18 @@ export default function Home() {
   const [selected, setSelected] = useState<string | null>(null);
   const [records,setRecords]=useState<ReadingRecord[]>([]);
   const [settings,setSettings]=useState<ReadingSettings>(defaultSettings);
+  const [positions,setPositions]=useState<Record<string,number>>({});
   const [ready,setReady]=useState(false);
   const [storageError,setStorageError]=useState(false);
   useEffect(()=>{try{
     const saved=JSON.parse(localStorage.getItem("lilypad.v1")??"null");
-    if(saved){if(Array.isArray(saved.records))setRecords(saved.records.filter((r:ReadingRecord)=>typeof r?.word==="string"&&typeof r?.activity==="string"&&typeof r?.at==="string"&&Number.isFinite(Date.parse(r.at))&&(r.source==="speech"||r.source==="parent")));if(saved.settings)setSettings(readSettings(saved.settings));}
+    if(saved){
+      const previous=Array.isArray(saved.records)?saved.records.filter((r:ReadingRecord)=>typeof r?.word==="string"&&typeof r?.activity==="string"&&typeof r?.at==="string"&&Number.isFinite(Date.parse(r.at))&&(r.source==="speech"||r.source==="parent")):[];
+      setRecords(previous);setPositions(readLibraryPositions(saved.positions,previous));
+      if(saved.settings)setSettings(readSettings(saved.settings));
+    }
   }catch{setStorageError(true);}setReady(true);},[]);
-  useEffect(()=>{if(ready)try{localStorage.setItem("lilypad.v1",JSON.stringify({records,settings}));}catch{setStorageError(true);}},[records,settings,ready]);
+  useEffect(()=>{if(ready)try{localStorage.setItem("lilypad.v1",JSON.stringify({records,settings,positions}));}catch{setStorageError(true);}},[records,settings,positions,ready]);
   const today=countReadWords(records.filter(r=>localDay(new Date(r.at))===localDay()));
   const totalWords=countReadWords(records);
   const readingDays=new Set(records.map(r=>localDay(new Date(r.at)))).size;
@@ -57,7 +62,7 @@ export default function Home() {
     <main className="main-content"><div className="greeting"><div><div className="eyebrow"><span/> A FRESH DAY TO GROW</div><h1>{page==="home"?<>Hi, Lili! Let's make a little magic.<span className="hello-star"><Sparkles/></span></>:page==="games"?"A little adventure awaits.":page==="progress"?"Look how you're growing!":page==="parents"?"A little help behind the scenes.":"Your very own treasure collection."}</h1><p>One word, one happy hop. Your reading adventure starts here.</p></div></div>
     {page==="home"&&<><section className="welcome-card"><div className="welcome-copy"><span className="small-pill"><Sparkles size={14}/>YOUR NEXT LITTLE ADVENTURE</span><h2>Ready, set,<br/><span>let's read!</span></h2><p>Say it out loud, give it a try, and watch<br className="desktop-break"/> your reading confidence grow.</p><button className="primary-button" onClick={()=>setSelected("Word Hop")}><Play size={16} fill="currentColor"/>Let's play Word Hop</button><span className="welcome-foot"><Heart size={14}/>No rush. No pressure. Just you.</span></div><div className="welcome-art"><span className="art-caption">You've got this, Lili!</span><img src="/images/frog-reader.png" alt="A friendly frog reading a book on a lily pad" width="285" height="285"/><span className="art-star star-one"><Sparkles size={24}/></span><span className="art-star star-two"><Star size={16}/></span></div><div className="hero-bottom-line"/></section>
     <section className="stats-strip" aria-label="Reading progress"><div><span className="stat-icon green"><BookOpen size={22}/></span><div><strong>{totalWords} <small>words</small></strong><span>Read in words and sentences</span></div></div><div><span className="stat-icon gold"><Star size={22}/></span><div><strong>{records.length} <small>stars</small></strong><span>A sparkle for every happy hop</span></div></div><div><span className="stat-icon peach"><Flame size={22}/></span><div><strong>{readingDays?`${readingDays} reading ${readingDays===1?"day":"days"}`:"Let's begin!"}</strong><span>{readingDays?"Growing at your own pace":"Your first day of growing"}</span></div></div></section></>}
-    {(page==="home"||page==="games")&&<section className="activities-section"><div className="section-heading"><div><h2>Pick your next adventure</h2><p>A little play goes a long way.</p></div><span className="section-note"><BookMarked size={16}/>Made for your growing reader</span></div><Tabs defaultValue="all"><TabsList className="activity-tabs"><TabsTrigger value="all">All adventures</TabsTrigger><TabsTrigger value="words">Word practice</TabsTrigger><TabsTrigger value="sounds">Letter sounds</TabsTrigger><TabsTrigger value="sentences">Sentences & stories</TabsTrigger></TabsList>{["all","words","sounds","sentences"].map(filter=><TabsContent value={filter} key={filter}><div className="activity-grid">{activities.filter(a=>filter==="all"||a.category===filter).map(({title,tag,description,icon:Icon,color,skill,time,button,sample})=><article className={`activity-card ${color}`} key={title}><div className="activity-art"><span className="activity-tag">{tag}</span><span className="activity-glyph"><Icon size={61} strokeWidth={1.6}/></span><span className={`sample-word ${title.startsWith("Sentence")||title==="Story Trail"?"sentence-sample":""}`}>{sample}</span><span className="activity-spark"><Sparkles size={19}/></span></div><div className="activity-body"><h3>{title}</h3><p>{description}</p><div className="activity-meta"><span><Sprout size={14}/>{skill}</span><span><Clock3 size={14}/>{time}</span></div><button onClick={()=>setSelected(title)}>{button}<Play size={14} fill="currentColor"/></button></div></article>)}</div></TabsContent>)}</Tabs></section>}
+    {(page==="home"||page==="games")&&<section className="activities-section"><div className="section-heading"><div><h2>Pick your next adventure</h2><p>A little play goes a long way.</p></div><span className="section-note"><BookMarked size={16}/>Made for your growing reader</span></div><Tabs defaultValue="all"><TabsList className="activity-tabs"><TabsTrigger value="all">All adventures</TabsTrigger><TabsTrigger value="words">Word practice</TabsTrigger><TabsTrigger value="sounds">Letter sounds</TabsTrigger><TabsTrigger value="sentences">Sentences & stories</TabsTrigger></TabsList>{["all","words","sounds","sentences"].map(filter=><TabsContent value={filter} key={filter}><div className="activity-grid">{activities.filter(a=>filter==="all"||a.category===filter).map(({title,tag,description,icon:Icon,color,skill,time,button,sample})=><article className={`activity-card ${color}`} key={title}><div className="activity-art"><span className="activity-tag">{tag}</span><span className="activity-glyph"><Icon size={61} strokeWidth={1.6}/></span><span className={`sample-word ${title.startsWith("Sentence")||title==="Story Trail"?"sentence-sample":""}`}>{sample}</span><span className="activity-spark"><Sparkles size={19}/></span></div><div className="activity-body"><h3>{title}</h3><span className="library-size">{title==="Story Trail"?`${practiceItems(title).length/6} stories · 6 sentences each`:`${practiceItems(title).length} ${title.startsWith("Sentence")?"sentences":"words"} to explore`}</span><p>{description}</p><div className="activity-meta"><span><Sprout size={14}/>{skill}</span><span><Clock3 size={14}/>{time}</span></div><button onClick={()=>setSelected(title)}>{button}<Play size={14} fill="currentColor"/></button></div></article>)}</div></TabsContent>)}</Tabs></section>}
     {page==="home"&&<section className="bottom-grid"><div className="daily-goal"><span className="goal-symbol"><Star size={26}/></span><div><div className="goal-title"><h3>Small steps, happy hops</h3><span>{Math.min(today,10)} / 10 words</span></div><p>{today>=10?"Your daily goal is complete. Look at you grow!":"Read 10 words today. One happy hop at a time!"}</p><Progress value={Math.min(today/10*100,100)} aria-label="Daily word goal"/></div></div><div className="gentle-note"><Heart size={20}/><p>Mistakes are how we learn.<br/><strong>Every try is a little win.</strong></p></div></section>}
     {page==="progress"&&<LearningProgress records={records} onPlay={()=>setSelected("Word Hop")}/>}
     {page==="rewards"&&<Rewards records={records} onPlay={()=>setSelected("Word Hop")}/>}
@@ -65,7 +70,7 @@ export default function Home() {
     {storageError&&page!=="parents"&&<p className="storage-note">Progress cannot be saved in this browser. Visit Parent corner for details.</p>}
     <footer className="page-footer"><Leaf size={14}/>Made with love, for Lili.<span>A little brighter with every word.</span></footer>
     </main>
-    {selected&&<ReadingGame key={selected} activity={selected} onClose={()=>setSelected(null)} onRead={onRead} settings={settings}/>}
+    {selected&&<ReadingGame key={selected} activity={selected} onClose={()=>setSelected(null)} onRead={onRead} settings={settings} position={positions[selected]??0} onAdvance={position=>setPositions(previous=>({...previous,[selected]:position}))}/>}
     </SidebarInset>
   </SidebarProvider>;
 }

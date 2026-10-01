@@ -20,9 +20,9 @@ test('thin is distinct from other consonants and vowels, including proper-name t
  for(const text of ['Thin.','THIN!',' thin '])assert.equal(isWordMatch(text,thin),true);
  for(const text of ['fin','Finn.','tin','then','thing','think','thin fin','thin is thin'])assert.equal(isWordMatch(text,thin),false);
 });
-test('all adventures match their own words and reject every other practice word',()=>{
+test('all adventures accept only the displayed word or its documented homophones',()=>{
  const words=Object.values(wordSets).flat();
- for(const word of words)for(const other of words)assert.equal(isWordMatch(other.text,word),word.text===other.text);
+ for(const word of words)for(const other of words)assert.equal(isWordMatch(other.text,word),[word.text,...(word.aliases??[])].some(answer=>answer.toLowerCase()===other.text.toLowerCase()));
 });
 test('explicit reading phrases supply context without admitting wrong words or negation',()=>{
  const thin=wordSets['Sound Safari'].find(word=>word.text==='thin')!;

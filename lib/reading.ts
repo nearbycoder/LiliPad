@@ -1,7 +1,8 @@
+import { expandWordLibraries, expandSentenceLibraries } from './reading-library.ts';
 export type Word = { kind?: "word"; text: string; chunks: string[]; cue: string; sentence: string; aliases?: string[] };
-export type Sentence = { kind: "sentence"; text: string; phrases: string[]; cue: string };
+export type Sentence = { kind: "sentence"; text: string; phrases: string[]; cue: string; storyTitle?: string };
 export type ReadingItem = Word | Sentence;
-export const wordSets: Record<string, Word[]> = {
+const starterWordSets: Record<string, Word[]> = {
   "Word Hop": [
     {text:"cat",chunks:["c","a","t"],cue:"Start with the first sound in cup. Add the vowel sound in apple. End with the last sound in hat. Blend them: cat.",sentence:"The cat takes a nap."},
     {text:"sun",chunks:["s","u","n"],cue:"Start with the first sound in soap. Add the vowel sound in up. End with the last sound in pen. Blend them: sun.",sentence:"The sun is warm.",aliases:["son"]},
@@ -51,7 +52,7 @@ const sentence = (text: string, phrases: string[]): Sentence => ({
   kind: "sentence", text, phrases,
   cue: `Read in little groups. ${phrases.join(". ")}.`,
 });
-export const sentenceSets: Record<string, Sentence[]> = {
+const starterSentenceSets: Record<string, Sentence[]> = {
   "Sentence Pond": [
     sentence("The cat is on the mat.", ["The cat", "is on the mat"]),
     sentence("I can hop like a frog.", ["I can hop", "like a frog"]),
@@ -79,8 +80,29 @@ export const sentenceSets: Record<string, Sentence[]> = {
     sentence("The frog shares the book with a friend.", ["The frog shares the book", "with a friend"]),
   ],
 };
+export const wordSets = expandWordLibraries(starterWordSets);
+export const sentenceSets = expandSentenceLibraries(starterSentenceSets,sentence);
 export function practiceItems(activity: string): ReadingItem[] {
   return sentenceSets[activity] ?? wordSets[activity] ?? [];
+}
+export function practiceRound(activity:string,position=0):{items:ReadingItem[];start:number;librarySize:number} {
+  const library=practiceItems(activity);
+  const start=Number.isSafeInteger(position)&&position>=0?position:0;
+  if (!library.length) return {items:[],start,librarySize:0};
+  const offset=start%library.length;
+  const count=activity==='Story Trail'?6-offset%6:activity==='Sentence Pond'?8:activity==='Sentence Scramble'?6:10;
+  return {items:library.slice(offset,Math.min(offset+count,library.length)),start,librarySize:library.length};
+}
+export function readLibraryPositions(value:unknown,records:ReadingRecord[]=[]):Record<string,number> {
+  const saved=value&&typeof value==='object'?value as Record<string,unknown>:{};
+  return Object.fromEntries([...Object.keys(wordSets),...Object.keys(sentenceSets)].map(activity=>{
+    const position=saved[activity];
+    if (typeof position==='number'&&Number.isSafeInteger(position)&&position>=0&&position<Number.MAX_SAFE_INTEGER-2000) return [activity,position];
+    // Older progress had no cursor. Continue after the last completed item.
+    const latest=records.findLast(record=>record.activity===activity);
+    const index=latest?practiceItems(activity).findIndex(item=>item.text===latest.word):-1;
+    return [activity,index+1];
+  }));
 }
 export function sentenceWords(text: string): string[] {
   return text.toLowerCase().replace(/[’‘]/g, "'").match(/[a-z0-9]+(?:'[a-z0-9]+)*/g) ?? [];
