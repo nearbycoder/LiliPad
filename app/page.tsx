@@ -10,7 +10,7 @@ import { ReadingGame } from "@/components/reading-game";
 import { NavigationButton } from "@/components/navigation-button";
 import { ParentCorner } from "@/components/parent-corner";
 import { LearningProgress, Rewards } from "@/components/learning-progress";
-import { localDay, type ReadingRecord, type Settings as ReadingSettings } from "@/lib/reading";
+import { defaultSettings, readSettings, localDay, type ReadingRecord, type Settings as ReadingSettings } from "@/lib/reading";
 
 const activities = [
   { title: "Word Hop", tag: "START HERE", description: "Little words. Big adventures.\nRead a word and hop ahead!", icon: BookOpen, color: "mint", skill: "Everyday words", time: "5 min", button: "Let's play", sample: "cat" },
@@ -22,12 +22,12 @@ export default function Home() {
   const [page, setPage] = useState("home");
   const [selected, setSelected] = useState<string | null>(null);
   const [records,setRecords]=useState<ReadingRecord[]>([]);
-  const [settings,setSettings]=useState<ReadingSettings>({sound:true,assisted:false});
+  const [settings,setSettings]=useState<ReadingSettings>(defaultSettings);
   const [ready,setReady]=useState(false);
   const [storageError,setStorageError]=useState(false);
   useEffect(()=>{try{
     const saved=JSON.parse(localStorage.getItem("lilypad.v1")??"null");
-    if(saved){if(Array.isArray(saved.records))setRecords(saved.records.filter((r:ReadingRecord)=>typeof r?.word==="string"&&typeof r?.activity==="string"&&typeof r?.at==="string"&&Number.isFinite(Date.parse(r.at))&&(r.source==="speech"||r.source==="parent")));if(saved.settings)setSettings({sound:typeof saved.settings.sound==="boolean"?saved.settings.sound:true,assisted:saved.settings.assisted===true});}
+    if(saved){if(Array.isArray(saved.records))setRecords(saved.records.filter((r:ReadingRecord)=>typeof r?.word==="string"&&typeof r?.activity==="string"&&typeof r?.at==="string"&&Number.isFinite(Date.parse(r.at))&&(r.source==="speech"||r.source==="parent")));if(saved.settings)setSettings(readSettings(saved.settings));}
   }catch{setStorageError(true);}setReady(true);},[]);
   useEffect(()=>{if(ready)try{localStorage.setItem("lilypad.v1",JSON.stringify({records,settings}));}catch{setStorageError(true);}},[records,settings,ready]);
   const today=records.filter(r=>localDay(new Date(r.at))===localDay()).length;

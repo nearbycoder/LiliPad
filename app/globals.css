@@ -23,6 +23,21 @@
 @media(max-width:350px){.welcome-art{width:100px;height:100px;right:6px}.welcome-art img{width:100px;height:100px}.welcome-copy p{max-width:150px;font-size:13px}.welcome-copy h2{font-size:31px}}
 .reading-dialog{width:min(680px,calc(100% - 24px))!important}
 .mic-button.listening{background:#305f43;border-bottom-color:#244b33}
+.voice-download{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#f0f4e9;border-radius:12px;color:#637359;font-size:14px;line-height:1.6}
+.voice-download small{display:block;font-size:13px;margin-top:3px}
+.stop-hint{justify-self:center;min-width:160px}
+.speech-choice{border:0;border-top:1px solid #e9eddf;padding:22px 0;margin-top:20px;min-width:0}
+.speech-choice legend{font-weight:800;font-size:18px;padding-right:12px;color:#415738}
+.speech-choice>p{font-size:15px;line-height:1.7;color:#65735d;margin-bottom:14px}
+.speech-choice>div{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.speech-choice label{display:flex;align-items:center;gap:12px;min-height:80px;border:2px solid #e3e9db;border-radius:14px;padding:16px;cursor:pointer;background:#fff}
+.speech-choice label.selected{border-color:#6c8e56;background:#f0f5e9}
+.speech-choice label:focus-within{outline:3px solid #779459;outline-offset:3px}
+.speech-choice input{accent-color:#38694f;width:20px;height:20px;flex-shrink:0}
+.speech-choice strong{display:block;font-size:16px}
+.speech-choice small{display:block;color:#65735d;font-size:14px;line-height:1.6;margin-top:4px}
+.voice-preview{margin-bottom:8px}
+@media(max-width:767px){.speech-choice>div{grid-template-columns:1fr}.voice-preview{width:100%}}
 
 /* Comfortable finger targets on tablets, phones, and shared family computers. */
 button, a, [role="tab"], [role="switch"] {

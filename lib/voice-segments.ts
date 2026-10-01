@@ -21,7 +21,9 @@ export class VoiceSegments {
     const voiced=rms>=threshold;
     if(!this.started&&!voiced) {
       this.noise=this.noise*.98+rms*.02;
-      this.lead.push(frame);while(this.lead.length>Math.ceil(160/ms))this.lead.shift();
+      // Unvoiced consonants (th, f, s) can be quieter than the following vowel.
+      // Preserve their onset without increasing the wait after a spoken word.
+      this.lead.push(frame);while(this.lead.length>Math.ceil(360/ms))this.lead.shift();
       return {started:false};
     }
     const justStarted=!this.started;

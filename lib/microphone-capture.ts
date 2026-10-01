@@ -13,7 +13,9 @@ export class MicrophoneCapture {
     // Start both during the user gesture. Never wait for a model download before permission.
     const resumed=context.resume().then(()=>null,error=>error);
     let stream:MediaStream;
-    try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1},video:false});}
+    // Noise suppression can erase the quiet airflow in th/f/s; keep the original
+    // consonants. Capture is held during spoken hints, so they never become attempts.
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:true,channelCount:1},video:false});}
     catch(error){await context.close();throw error;}
     const capture=new MicrophoneCapture(context,stream,onLost);
     try {

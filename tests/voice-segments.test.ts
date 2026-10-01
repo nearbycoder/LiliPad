@@ -22,6 +22,17 @@ test('short noise clicks do not create word attempts',()=>{
   segments.push(speech());
   for(let i=0;i<25;i++)assert.equal(segments.push(quiet()).audio,undefined);
 });
+test('a quiet 300 ms starting consonant is preserved before the voiced vowel',()=>{
+ const segments=new VoiceSegments(16000);
+ for(let i=0;i<30;i++)segments.push(quiet());
+ const consonant=Float32Array.from({length:320},(_,i)=>Math.sin(i*.7)*.002);
+ for(let i=0;i<15;i++)assert.equal(segments.push(consonant).started,false);
+ for(let i=0;i<10;i++)segments.push(speech());
+ for(let i=0;i<15;i++)assert.equal(segments.push(quiet()).audio,undefined);
+ const audio=segments.push(quiet()).audio!;
+ assert.equal(audio.length,(18+10+16)*320);
+ assert.deepEqual(audio.slice(3*320,18*320),Float32Array.from({length:15*320},(_,i)=>consonant[i%320]));
+});
 test('brief pauses within a word do not split the word',()=>{
   const segments=new VoiceSegments(16000);
   for(let i=0;i<10;i++)segments.push(speech());

@@ -4,6 +4,7 @@ import { Mic, Square, Volume2, Lightbulb, Star, Sparkles, Check, RotateCcw, Hear
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { MicrophoneCapture } from "@/lib/microphone-capture";
+import { NaturalVoice, type VoiceState } from "@/lib/natural-voice";
 import { isWordMatch, wordSets, type ReadingRecord, type Settings } from "@/lib/reading";
 
 type Status="idle"|"loading"|"recording"|"checking"|"correct"|"retry"|"paused"|"error";
@@ -19,6 +20,9 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   const [score,setScore]=useState(0);
   const [ttsError,setTtsError]=useState("");
   const [speaking,setSpeaking]=useState(false);
+  const [voiceState,setVoiceState]=useState<VoiceState>({phase:"idle",progress:0});
+  const [deviceVoice,setDeviceVoice]=useState(settings.voice==="device");
+  const naturalVoice=useRef<NaturalVoice|null>(null);
   const session=useRef({mounted:true,running:false,modelReady:false,workerBusy:false,epoch:0,micEpoch:0,request:0,pending:null as null|{id:number;epoch:number;index:number},index:0,status:"idle" as Status,speaking:false});
   const worker=useRef<Worker|null>(null);
   const capture=useRef<MicrophoneCapture|null>(null);
@@ -36,7 +40,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   function pause(text="Take a little break. Tap resume when you're ready."){
     const wasCorrect=session.current.status==="correct";
     invalidate();session.current.micEpoch++;session.current.running=false;setListening(false);
-    if(speechTimer.current)clearTimeout(speechTimer.current);window.speechSynthesis?.cancel();session.current.speaking=false;setSpeaking(false);
+    if(speechTimer.current)clearTimeout(speechTimer.current);naturalVoice.current?.stop();window.speechSynthesis?.cancel();session.current.speaking=false;setSpeaking(false);
     capture.current?.close();capture.current=null;
     if(!wasCorrect){if(advanceTimer.current)clearTimeout(advanceTimer.current);transition("paused",text);}
   }
@@ -50,7 +54,7 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   }
   function next(){
     if(advanceTimer.current)clearTimeout(advanceTimer.current);
-    invalidate();window.speechSynthesis?.cancel();session.current.speaking=false;setSpeaking(false);
+    invalidate();naturalVoice.current?.stop();window.speechSynthesis?.cancel();session.current.speaking=false;setSpeaking(false);
     const nextIndex=session.current.index+1;session.current.index=nextIndex;
     setIndex(nextIndex);setHint(false);setTtsError("");
     if(nextIndex>=words.length){pause();transition("idle","");}
@@ -108,14 +112,15 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
           if(isWordMatch(data.text,words[state.index]))actions.current.celebrate("speech");
           else {
             setHint(true);
-            transition("retry",data.text.trim()?`I heard “${data.text.trim()}”. Try this word again.`:"Let's give this word another try.");
+            const target=words[state.index].text;
+            transition("retry",data.text.trim()?`I heard “${data.text.trim()}”. Try again, or say “The word is ${target}.”`:`I missed that one. Try again, or say “The word is ${target}.”`);
             // Keep the microphone open and automatically accept another attempt.
             capture.current?.listen();
           }
         }
         if(data.type==="error")broken();
       };
-      w.postMessage({type:"load"});
+      w.postMessage({type:"load",recognition:settingsRef.current.recognition});
       modelTimer.current=setTimeout(broken,180000);
     }catch{setLoading(false);fail("This browser couldn't start the listening helper. Try Chrome or Edge, or use read-together mode.");}
   }
@@ -139,27 +144,40 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
       fail(error instanceof DOMException&&error.name==="NotAllowedError"?"Allow microphone access in your browser, then tap resume. A grown-up can help.":error instanceof DOMException&&error.name==="NotFoundError"?"No microphone was found. Connect one, or try read-together mode.":error instanceof Error?error.message:"Your microphone couldn't start. Tap resume to try again.");
     }
   }
-  function speak(text:string,rate=.75){
+  function speak(text:string,rate=.95){
     if(session.current.status==="correct")return;
     invalidate();
     if(speechTimer.current)clearTimeout(speechTimer.current);
-    if(!("speechSynthesis" in window)){setTtsError("Your browser cannot play spoken hints. Read the hint together.");resumeFeedback();return;}
     // Never transcribe the app's own spoken hints. Resume after playback has ended.
-    window.speechSynthesis.cancel();session.current.speaking=true;setSpeaking(true);setTtsError("");
+    naturalVoice.current?.stop();window.speechSynthesis?.cancel();session.current.speaking=true;setSpeaking(true);setTtsError("");
     const epoch=session.current.epoch;
     transition("idle","Listen to the hint, then try the word.");
     const finish=(error=false)=>{
       if(!session.current.mounted||epoch!==session.current.epoch)return;
       if(speechTimer.current)clearTimeout(speechTimer.current);
       session.current.speaking=false;setSpeaking(false);
-      if(error)setTtsError("The spoken hint couldn't play. You can read the hint together.");
+      if(error)setTtsError("The spoken hint couldn't play. Try again, use the device voice below, or read the hint together.");
       resumeTimer.current=setTimeout(()=>actions.current.resumeFeedback(),250);
     };
+    if(!deviceVoice){
+      speechTimer.current=setTimeout(()=>{naturalVoice.current?.stop();finish(true);},180000);
+      if(!naturalVoice.current)naturalVoice.current=new NaturalVoice(setVoiceState);
+      void naturalVoice.current.speak(text,rate).then(()=>finish(),()=>finish(true));
+      return;
+    }
+    if(!("speechSynthesis" in window)){finish(true);return;}
     const utterance=new SpeechSynthesisUtterance(text);utterance.lang="en-US";utterance.rate=rate;
     const voice=window.speechSynthesis.getVoices().find(v=>v.lang==="en-US"&&v.localService)??window.speechSynthesis.getVoices().find(v=>v.lang.startsWith("en"));if(voice)utterance.voice=voice;
     utterance.onend=()=>finish();utterance.onerror=()=>finish(true);
     speechTimer.current=setTimeout(()=>{window.speechSynthesis.cancel();finish(true);},45000);
     window.speechSynthesis.speak(utterance);
+  }
+  function stopHint(){
+    invalidate();naturalVoice.current?.stop();window.speechSynthesis?.cancel();
+    if(speechTimer.current)clearTimeout(speechTimer.current);
+    session.current.speaking=false;setSpeaking(false);
+    transition("idle","You can try the word when you're ready.");
+    resumeTimer.current=setTimeout(()=>actions.current.resumeFeedback(),250);
   }
   function playAgain(){
     session.current.index=0;setIndex(0);setScore(0);setHint(false);setTtsError("");transition("idle","");
@@ -170,11 +188,16 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
   useEffect(()=>{
     session.current.mounted=true;
     if(!settingsRef.current.assisted)prepareWorker();
-    const hidden=()=>{if(document.hidden&&session.current.running)pause("Reading is paused. Tap resume when you come back.");};
+    if(settingsRef.current.voice==="natural"){
+      naturalVoice.current=new NaturalVoice(setVoiceState);
+      try{naturalVoice.current.prepare();}catch{setVoiceState({phase:"error",progress:0});}
+    }
+    const hidden=()=>{if(document.hidden&&(session.current.running||session.current.speaking))pause("Reading is paused. Tap resume when you come back.");};
     document.addEventListener("visibilitychange",hidden);
     return()=>{
       session.current.mounted=false;session.current.running=false;session.current.epoch++;session.current.micEpoch++;
       capture.current?.close();capture.current=null;worker.current?.terminate();worker.current=null;
+      naturalVoice.current?.close();naturalVoice.current=null;
       for(const timer of [advanceTimer,modelTimer,resumeTimer,speechTimer])if(timer.current)clearTimeout(timer.current);
       window.speechSynthesis?.cancel();document.removeEventListener("visibilitychange",hidden);
     };
@@ -189,10 +212,13 @@ export function ReadingGame({activity,onClose,onRead,settings}:{activity:string;
     <div className={`game-feedback ${status}`} aria-live="polite" aria-atomic="true">{status==="correct"?<Check size={22}/>:status==="checking"||status==="loading"?<LoaderCircle size={20} className="spin"/>:status==="retry"?<Heart size={20}/>:null}<p>{message||"Take your time. Your frog friend is cheering you on."}</p></div>
     {loading&&<div className="model-progress"><Progress value={download} aria-label="Listening model file download"/><span>Downloading the listening helper{download>0?` · current file ${download}%`:"..."}</span></div>}
     <div className="game-actions">{settings.assisted?<button disabled={status==="correct"||speaking} className="primary-button mic-button" onClick={()=>celebrate("parent")}><Check size={20}/>My grown-up heard it</button>:<button disabled={status==="correct"||(speaking&&!listening)} className={`primary-button mic-button ${listening?"listening":""}`} onClick={()=>void listen()}>{listening?<Square size={17} fill="currentColor"/>:<Mic size={22}/>} {listening?"Pause listening":status==="paused"||status==="error"?"Resume listening":"Start reading"}</button>}
-    <button className="secondary-button" disabled={speaking||status==="correct"} onClick={()=>{setHint(!hint);if(!hint)speak(word.cue,.75);}}><Lightbulb size={18}/>Give me a hint</button></div>
-    {hint&&status!=="correct"&&<div className="hint-panel"><div className="sound-chunks" aria-label="Word parts">{word.chunks.map((chunk,i)=><span key={i}>{chunk}</span>)}</div><p>{word.cue}</p><div><button onClick={()=>speak(word.cue)} disabled={speaking}><Volume2 size={16}/>Explain the sounds</button><button onClick={()=>speak(word.text,.65)} disabled={speaking}><Volume2 size={16}/>Hear the whole word</button></div><p className="example-sentence">{word.sentence}</p></div>}
+    <button className="secondary-button" disabled={speaking||status==="correct"} onClick={()=>{setHint(!hint);if(!hint)speak(word.cue);}}><Lightbulb size={18}/>Give me a hint</button></div>
+    {!deviceVoice&&voiceState.phase==="loading"&&<div className="voice-download" role="status"><LoaderCircle size={18} className="spin"/><span>Getting your friendly voice ready{voiceState.progress>0?` · current file ${voiceState.progress}%`:"..."}<small>The first visit downloads the voice. It stays on this device when browser storage is available.</small></span></div>}
+    {speaking&&<button className="secondary-button stop-hint" onClick={stopHint}><Square size={16}/>Stop hint</button>}
+    {hint&&status!=="correct"&&<div className="hint-panel"><div className="sound-chunks" aria-label="Word parts">{word.chunks.map((chunk,i)=><span key={i}>{chunk}</span>)}</div><p>{word.cue}</p><div><button onClick={()=>speak(word.cue)} disabled={speaking}><Volume2 size={16}/>Explain the sounds</button><button onClick={()=>speak(`${word.text}.`,.85)} disabled={speaking}><Volume2 size={16}/>Hear the whole word</button></div><p className="example-sentence">{word.sentence}</p></div>}
     {ttsError&&<p className="audio-error" role="status">{ttsError}</p>}
-    <div className="game-bottom"><button disabled={speaking||status==="correct"} onClick={()=>speak(word.text,.65)}><Volume2 size={16}/>Hear the word</button><span><Heart size={13}/>Every try counts.</span><button disabled={speaking||status==="correct"} onClick={next}>Come back to this<SkipForward size={14}/></button></div>
+    {!deviceVoice&&(ttsError||voiceState.phase==="error")&&<button className="secondary-button" disabled={speaking} onClick={()=>{setDeviceVoice(true);setTtsError("");naturalVoice.current?.close();naturalVoice.current=null;}}>Use device voice</button>}
+    <div className="game-bottom"><button disabled={speaking||status==="correct"} onClick={()=>speak(`${word.text}.`,.85)}><Volume2 size={16}/>Hear the word</button><span><Heart size={13}/>Every try counts.</span><button disabled={speaking||status==="correct"} onClick={next}>Come back to this<SkipForward size={14}/></button></div>
   </>}
   </DialogContent></Dialog>;
 }

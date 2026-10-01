@@ -4,9 +4,11 @@ env.backends.onnx.wasm!.wasmPaths = "/speech/";
 env.backends.onnx.wasm!.numThreads = 1;
 const createTranscriber = pipeline as unknown as (task: "automatic-speech-recognition", model: string, options: PretrainedModelOptions) => Promise<AutomaticSpeechRecognitionPipeline>;
 let transcriber: Promise<AutomaticSpeechRecognitionPipeline> | null = null;
+let recognition: "careful" | "quick" = "careful";
 async function getModel() {
   if (!transcriber) {
-    transcriber = createTranscriber("automatic-speech-recognition", "onnx-community/moonshine-tiny-ONNX", {
+    const modelId = recognition === "quick" ? "onnx-community/moonshine-tiny-ONNX" : "onnx-community/moonshine-base-ONNX";
+    transcriber = createTranscriber("automatic-speech-recognition", modelId, {
       device: "wasm", dtype: { encoder_model: "fp32", decoder_model_merged: "q8" },
       progress_callback: p => { if(p.status==="progress")self.postMessage({type:"progress",file:p.file,progress:p.progress}); },
     }).then(async model => {
@@ -20,10 +22,11 @@ async function getModel() {
   return transcriber;
 }
 let chain=Promise.resolve();
-self.onmessage=(event:MessageEvent<{type:"load"|"transcribe";audio?:Float32Array;id?:number}>)=>{
+self.onmessage=(event:MessageEvent<{type:"load"|"transcribe";audio?:Float32Array;id?:number;recognition?:"careful"|"quick"}>)=>{
   const data=event.data;
   chain=chain.then(async()=>{
     try {
+      if (data.type === "load" && !transcriber) recognition = data.recognition === "quick" ? "quick" : "careful";
       const model=await getModel();
       if(data.type==="load"){self.postMessage({type:"ready"});return;}
       if(!data.audio?.length)throw new Error("No speech was received.");
