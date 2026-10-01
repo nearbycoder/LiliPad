@@ -23,3 +23,178 @@
 @media(max-width:350px){.welcome-art{width:100px;height:100px;right:6px}.welcome-art img{width:100px;height:100px}.welcome-copy p{max-width:150px;font-size:13px}.welcome-copy h2{font-size:31px}}
 .reading-dialog{width:min(680px,calc(100% - 24px))!important}
 .mic-button.listening{background:#305f43;border-bottom-color:#244b33}
+
+/* Comfortable finger targets on tablets, phones, and shared family computers. */
+button, a, [role="tab"], [role="switch"] {
+  touch-action: manipulation;
+}
+
+.brand { min-height: 56px; }
+.side-nav { gap: 12px; }
+.side-nav button, .parent-link {
+  min-height: 56px;
+  font-size: 16px;
+  padding: 14px 16px;
+}
+.mobile-menu {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 14px;
+  background: #edf4e8;
+}
+.mobile-menu svg { width: 24px; height: 24px; }
+[data-mobile="true"][data-sidebar="sidebar"] > button {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  top: 8px;
+  right: 8px;
+  border-radius: 12px;
+  background: #edf4e8;
+}
+[data-mobile="true"] .brand-area { padding-top: 64px; }
+.primary-button, .secondary-button, .activity-body > button {
+  min-height: 56px;
+  font-size: 17px !important;
+  padding: 14px 20px;
+  border-radius: 14px;
+}
+.activity-body > button svg { width: 20px; height: 20px; }
+.activity-tabs {
+  height: auto !important;
+  padding: 6px !important;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  border-radius: 14px !important;
+}
+.activity-tabs button {
+  min-height: 56px;
+  font-size: 16px !important;
+  padding: 12px 18px !important;
+  border-radius: 10px;
+}
+.activity-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 20px;
+}
+.activity-body { padding: 22px; }
+.activity-body h3 { font-size: 22px; }
+.activity-body p { font-size: 16px; }
+.activity-meta { font-size: 13px; flex-wrap: wrap; }
+
+.main-content {
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+}
+.topbar {
+  padding-left: max(26px, env(safe-area-inset-left));
+  padding-right: max(26px, env(safe-area-inset-right));
+}
+.reading-dialog {
+  width: min(760px, calc(100% - 32px)) !important;
+  max-width: 760px !important;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 32px !important;
+  gap: 16px !important;
+}
+.reading-dialog [data-slot="dialog-close"] {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #edf3e5;
+  top: 8px;
+  right: 8px;
+}
+.reading-dialog [data-slot="dialog-close"] svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+.game-top { padding-right: 48px; }
+.game-description { font-size: 17px !important; }
+.word-stage { min-height: 240px; }
+.reading-word { font-size: clamp(80px, 11vw, 104px); }
+.game-actions { gap: 16px; }
+.game-actions .primary-button, .game-actions .secondary-button {
+  min-height: 64px;
+  padding: 16px 24px !important;
+  font-size: 18px !important;
+}
+.game-actions .mic-button { flex: 1; }
+.game-feedback { font-size: 16px; min-height: 48px; }
+.game-bottom { gap: 16px; flex-wrap: wrap; }
+.game-bottom button, .hint-panel button {
+  min-height: 56px;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #dce5d2;
+  background: #f3f6ed;
+  border-radius: 12px;
+  justify-content: center;
+}
+.game-bottom > span { display: none; }
+.game-bottom button { flex: 1; }
+.hint-panel > div:not(.sound-chunks) { gap: 16px; flex-wrap: wrap; }
+.hint-panel button { background: white; border-color: #eee4c6; flex: 1; }
+.hint-panel > p, .hint-panel .example-sentence { font-size: 16px; }
+.setting-row [data-slot="switch"] {
+  width: 80px;
+  height: 48px;
+  padding: 4px;
+  border: 0;
+}
+.setting-row [data-slot="switch-thumb"] {
+  width: 40px;
+  height: 40px;
+  translate: 0;
+  transform: translateX(0);
+}
+.setting-row [data-slot="switch-thumb"][data-state="checked"] {
+  transform: translateX(32px);
+}
+
+/* Menu navigation leaves more room on portrait iPads and in Split View. */
+@media (max-width: 1023px) {
+  .mobile-menu { display: flex; }
+  .topbar { min-height: 80px; height: auto; padding-top: 12px; padding-bottom: 12px; }
+  .breadcrumb { gap: 12px; }
+  .breadcrumb > span, .breadcrumb > svg { display: none; }
+  [data-slot="sidebar"]:not([data-mobile="true"]) { display: none !important; }
+  .main-content { padding-left: 28px; padding-right: 28px; }
+}
+
+@media (max-width: 767px) {
+  .main-content { padding-left: 20px; padding-right: 20px; }
+  .topbar { padding-left: 20px; padding-right: 20px; }
+  .activity-tabs { width: 100%; gap: 6px; }
+  .activity-tabs button { padding: 12px 8px !important; font-size: 14px !important; }
+  .activity-grid { grid-template-columns: 1fr; }
+  .activity-body { padding: 18px; }
+  .activity-body h3 { font-size: 20px; }
+  .activity-body p { font-size: 15px; }
+  .reading-dialog { padding: 24px 20px !important; width: calc(100% - 24px) !important; }
+  .game-top { padding-right: 56px; gap: 8px; }
+  .game-top > span:last-child { font-size: 12px; }
+  .game-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .game-actions button { width: 100%; }
+  .word-stage { min-height: 200px; }
+  .game-bottom { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hint-panel > div:not(.sound-chunks) { flex-direction: column; }
+  .welcome-copy .primary-button { padding: 14px 16px; width: 100%; justify-content: center; }
+  .welcome-art { bottom: 124px; }
+  .setting-row { align-items: flex-start; gap: 12px; }
+  .setting-row > svg { display: none; }
+}
+
+@media (pointer: coarse) {
+  .activity-tabs button { min-height: 56px; }
+  .primary-button:hover, .activity-card:hover { transform: none; }
+  .primary-button:active, .secondary-button:active, .activity-body > button:active {
+    transform: scale(.98);
+    filter: brightness(.94);
+  }
+}

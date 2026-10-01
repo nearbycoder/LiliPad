@@ -28,6 +28,10 @@ Open the URL printed by the server. Use `npm test` to check speech segmentation 
 
 On the same 0.52-second spoken “cat” reference clip in the local test browser, after warmup, the old Whisper worker took 947 ms and Moonshine took 31 ms for inference. This is a measured example on the development machine, not a guarantee for every device. Endpoint detection and the 450 ms celebration are additional time. Browser tests also exercised automatic advancement across two words with one microphone acquisition, automatic retry, stopping tracks on pause, audio suppression during hints, and rejection of a pending correct result after a hint interrupts it.
 
+## iPad and touch layouts
+
+Primary controls and navigation are at least 56 px tall; reading controls are 64 px tall, with space between targets. Adventure filters are 56 px tall on touch devices, and settings switches are 80 × 48 px. Portrait tablets and Split View use a navigation drawer below 1024 px; wider landscape layouts keep the sidebar. Reading panels scroll within the viewport, respect safe areas, and keep browser zoom available. No action requires hovering.
+
 ## Progress and settings
 
 Progress and settings are stored under `lilypad.v1` in localStorage in the current browser. There are no accounts or cross-device synchronization. Clearing browser data removes progress. A star is awarded per completed word, including repeated practice; skipping words earns no star. Progress is saved after each success, so ending a round keeps completed words.
