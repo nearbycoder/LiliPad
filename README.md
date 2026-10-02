@@ -1,67 +1,140 @@
 # LiliPad
 
-A gentle reading practice app for Lili (short for Liliana), with a dashboard, six reading adventures, spoken hints, celebrations, and device-local progress.
+Touch-friendly reading games for Lili (short for Liliana), built to make practice feel like play. Read words and sentences aloud, get gentle spoken hints, and earn a star with each success. Open speech models run on your device.
+
+![LiliPad dashboard with reading adventures](docs/screenshots/dashboard.png)
+
+## Games
+
+| Adventure | Library | Each round |
+| --- | --- | --- |
+| Word Hop | 600 words | 10 words |
+| Sound Safari | 600 words | 10 words |
+| Sight Word Stars | 600 words | 10 words |
+| Sentence Pond | 600 sentences | 8 sentences |
+| Sentence Scramble | 600 sentences | 6 build-and-read puzzles |
+| Story Trail | 101 connected stories, 606 sentences | One six-sentence story |
+
+Libraries save a separate place for each activity. **Next words**, **Next sentences**, or **Next story** opens the next batch. Closing and reopening resumes where you left off. **Skip for now** moves ahead without awarding a star. After the final item, the library loops for review.
+
+Words are curated practice material, including easy words and words to grow into. These are not standardized Fry/Dolch lists or grade-level assessments. Additional sentences and stories use recurring patterns and animal characters to build familiarity.
 
 ## Run locally
 
-Requires Node.js 22.13+ and npm.
+Use **Node.js 22.13 or newer** and npm. No API keys, database, or speech subscription are required.
 
 ```sh
-npm install
+git clone https://github.com/nearbycoder/LiliPad.git
+cd LiliPad
+npm run install:ci
 npm run dev -- --port 4321
 ```
 
-Open the URL printed by the server. Use `npm test` to check speech segmentation, matching, settings migration, and voice cancellation. Use `npm run typecheck` to check TypeScript and `npm run build` for the production build. The project uses React, Vinext, Tailwind, and the bundled shadcn/Radix UI primitives.
+Open **http://localhost:4321** in your browser. The installer uses the committed lockfile. Before development and production builds, the speech workers and WASM runtime are generated into `public/speech/`; they are not committed.
 
-## Reading and speech
+A clean clone defaults to the portable execution profile. `.sites-runtime/` is checkout-local tooling and can be absent. The `.openai/hosting.json` file identifies the original Sites deployment; it is not a credential. Forks run locally without access to that deployment. Set up your own hosting project before deploying a fork with Sites.
 
-- **Word Hop**, **Sound Safari**, and **Sight Word Stars** each have ten word rounds. **Sentence Pond** has eight short sentences, **Sentence Scramble** has six touch puzzles followed by spoken reading, and **Story Trail** has a connected six-sentence story. Find the new games under **Sentences & stories**.
-- Sentence games accept the whole sentence aloud. They ignore casing and punctuation but require all words in order, rejecting missing, extra, substituted, or reordered words. A one-second pause ends a speech chunk; a correct opening phrase stays highlighted and can be continued after a longer pause. A fresh full sentence can restart a partial attempt. A mismatch, hint, pause, skip, or close clears the unfinished prefix. No star or record is awarded for a partial sentence. Capture is bounded to twelve seconds per chunk and the decoder allows up to 64 tokens for sentence mode.
-- Sentence Scramble uses distinct touch tiles, including duplicate words. Tap words into order, tap a placed word to return it, and check the sentence. Building it does not earn a star; read it aloud afterward. Between puzzles, capture stays held until the next sentence is built; the same microphone then resumes. Sentence hints offer short spoken groups and a whole-sentence example.
+## How to use it
 
-- Tap **Let's play Word Hop**, then **Start reading** once. Allow microphone access and read each displayed word. A 320 ms pause after speech triggers recognition automatically. Correct words advance after a 450 ms celebration, and the same microphone keeps listening. Incorrect words automatically accept another attempt. **Pause listening** stops the microphone; **Resume listening** starts it again. Switching away from the tab pauses the session.
-- Open-source **[Moonshine base English](https://huggingface.co/onnx-community/moonshine-base-ONNX)** is the default Careful listening model (~123 MB of weights). Parent corner also offers **[Moonshine tiny English](https://huggingface.co/onnx-community/moonshine-tiny-ONNX)** for Quick listening (~51 MB). Both use an fp32 encoder and q8 decoder through Transformers.js 3.8.1 and single-thread ONNX Runtime Web in a dedicated browser worker. The worker and WASM runtime are hosted with the app; model files download from Hugging Face on first use and use the browser cache.
-- AudioWorklet captures mono PCM directly and resamples it to 16 kHz when necessary. Short speech segments avoid Whisper's fixed-window processing and repeated recording/decoding overhead. The model loads and warms when the adventure opens, instead of reloading per word. The app does not upload or store recordings. Speech recognition is not a pronunciation or reading assessment, and children's voices can be misheard. Test with Lili on the intended device before treating feedback as reliable.
-- Capture preserves 360 ms before the detected vowel to retain quiet starting consonants, including th, f, and s. Noise suppression is disabled to avoid removing those sounds; echo cancellation remains enabled. This does not increase the 320 ms wait after speech.
-- Whole-word matching ignores casing and punctuation and explicitly supports selected homophones. It also accepts the exact carrier phrases “The word is …”, “It is …”, and “It's …”, followed by the matching word. This supplies optional context when single-word recognition struggles. It rejects partial words, negation, arbitrary sentences, and similar but different words: fin, Finn, tin, and then do not match thin. Recognition is never prompted with the expected answer.
-- Hints temporarily suspend capture, discard any pending answer, and resume listening after playback. Silence and short noise clicks do not create word attempts. Pause, skip, close, and word changes invalidate stale transcripts so they cannot award stars.
-- Hints use **[Kokoro 82M](https://huggingface.co/hexgrad/Kokoro-82M)** with its Heart voice (`af_heart`) by default, through kokoro-js 1.2.1 and the [ONNX q8 model](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX). About 93 MB of weights plus supporting files download on first use and cache in the browser. Generation runs locally in a separate WASM worker. Short word examples use punctuation, and hints explain sounds through familiar words and articulation rather than asking TTS to pronounce invented letter sounds. Audio clips are cached within the adventure, with a bounded memory budget. **Stop hint** cancels pending generation or playback and resumes listening. The natural voice preloads when the adventure opens.
-- Parent corner offers **Try the reading voice** and an explicit **Device voice** option. Device voices vary; local English is preferred, but the browser may offer a network voice. If the natural model fails, the game offers a device-voice button. Written hints remain available.
-- Microphone access requires HTTPS or localhost. A network connection is required for the first model download; browser model caches may be evicted. Modern Chrome or Edge is recommended; inference speed depends on the device.
-- **Parent corner → Read together** lets a grown-up listen and mark a word as read. These records are labeled separately from speech-verified records.
+### Read with the microphone
 
-## Verified performance
+1. Pick an adventure, such as **Word Hop**.
+2. Let the listening helper download on the first visit, then tap **Start reading** and allow microphone access.
+3. Say the displayed word aloud. You only start the microphone once; the app keeps listening between items.
+4. A correct match earns a star and advances automatically after a short celebration. If the app misses the word, try again or use a hint.
+5. Tap **Pause listening** for a break. Returning from another tab may also require **Resume listening**.
 
-On the same 0.52-second spoken “cat” reference clip in the local test browser, after warmup, the old Whisper worker took 947 ms and Moonshine took 31 ms for inference. This is a measured example on the development machine, not a guarantee for every device. Endpoint detection and the 450 ms celebration are additional time. Browser tests also exercised automatic advancement across two words with one microphone acquisition, automatic retry, stopping tracks on pause, audio suppression during hints, and rejection of a pending correct result after a hint interrupts it.
+For difficult isolated words, try the exact phrase **“The word is thin.”** The app accepts this reading phrase followed by the correct word, while keeping different words such as *fin*, *tin*, and *then* separate. Recognition is never supplied with the expected answer.
 
-The natural-voice update was verified with real Kokoro generation, persistent model/voice cache entries, and cached repeated audio. In the development Chromium browser, short examples took about 1.7–2.0 seconds to generate initially; a repeated clip returned from memory in 0 ms. Longer hints take longer. Actual audio through the microphone capture and recognizer rejected “The word is fin” for thin, accepted “The word is thin,” then accepted duck and advanced twice with one microphone acquisition. All 19 automated tests and TypeScript checks passed.
+### Get a hint
 
-The sentence update has 29 automated tests covering strict matching, reading pauses, fresh retries, sentence tiles, legacy progress, and segmentation limits, alongside the prior word/voice checks. Browser verification used real synthesized audio through AudioWorklet and Moonshine base. It rejected “The cat is under the mat,” “The cat on the mat,” and “The cat is not on the mat.” It accepted “The cat is” followed after a pause by “On the mat,” then accepted the next full sentence, with one microphone acquisition. Sentence Scramble rejected the wrong order, awarded no star for building alone, advanced after spoken reading, and ignored incoming audio while the next puzzle was unbuilt. Touch tiles were at least 64 × 64 px in the portrait-tablet test viewport. These are development-browser checks, not measurements of Lili's speech on iPad.
+**Give me a hint** explains sounds or reads the sentence in small groups. **Hear the word/sentence** plays the complete example. Written hints remain available, and **Stop hint** cancels playback. The microphone is held during hints so the app cannot grade its own voice.
 
-Isolated synthetic and [Wiktionary pronunciation recordings](https://en.wiktionary.org/wiki/thin) of thin, fin, and tin exposed recognition errors in both Moonshine sizes. Whisper tiny/base comparison workers also misheard these words and were slower, so they were not added to the app. Carrier phrases helped the synthetic examples but do not guarantee accuracy for a child's voice. This update has not been verified on Lili's iPad or with her recordings; do that before relying on reading feedback.
+### Practice whole sentences
 
-## iPad and touch layouts
+In **Sentence Pond** and **Story Trail**, read every word in order. Capitalization and punctuation do not affect spoken matching. Correct opening words stay highlighted across pauses, so you can continue the sentence. A wrong fragment clears that attempt; try again from the beginning. Partial sentences do not earn stars.
 
-Primary controls and navigation are at least 56 px tall; reading controls are 64 px tall, with space between targets. Adventure filters are 56 px tall on touch devices, and settings switches are 80 × 48 px. Portrait tablets and Split View use a navigation drawer below 1024 px; wider landscape layouts keep the sidebar. Reading panels scroll within the viewport, respect safe areas, and keep browser zoom available. No action requires hovering.
+In **Sentence Scramble**, tap the shuffled word tiles into order. Tap a placed word to return it to the bank, then check your sentence. After building it, read the full sentence aloud to earn the star. Duplicate words have separate tiles.
 
-## Progress and settings
+### Read with a grown-up
 
-Progress and settings are stored under `lilypad.v1` in localStorage in the current browser. There are no accounts or cross-device synchronization. Clearing browser data removes progress. A star is awarded per completed word or whole sentence, including repeated practice; skipping earns no star. Sentence records store `kind: "sentence"` and the full text in the existing `word` field. Legacy word records remain valid. Word totals and the daily goal count every word in a completed sentence, while stars count completed rounds. Progress lists both practiced words and completed sentences and retains the read-together/source label. Progress is saved after each success, so ending a round keeps completed reading.
+In **Parent corner**, turn on **Read together**. A grown-up listens, then taps **My grown-up heard it**. This works without a microphone or speech-recognition download, and these completions are marked separately in progress. Choosing **Device voice** also avoids the natural-voice model download.
 
-Customize word lists, blending chunks, hints, sentences, and accepted homophones in `lib/reading.ts`. Recognition cleanup, recording, and celebrations are in `components/reading-game.tsx`.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/word-hop.png" alt="Word Hop in read-together mode with large reading controls" width="440"></td>
+    <td><img src="docs/screenshots/sentence-scramble.png" alt="Sentence Scramble with touch-friendly word tiles" width="440"></td>
+  </tr>
+  <tr>
+    <td>Word Hop in read-together mode</td>
+    <td>Build a sentence, then read it aloud</td>
+  </tr>
+</table>
 
-## Assets and licenses
+Screenshots show sample sessions in a desktop browser, including tablet-sized layouts; they do not contain a child's saved reading history.
 
-`public/images/frog-reader.png` is an original image created with the built-in image generation tool. Prompt: “Original charming children's book flat gouache illustration of a friendly small green frog sitting on a lily pad reading an open cream book, with a pink water lily beside it and a tiny golden sparkle. Bold simple shapes, rounded forms, subtle paper texture. Moss green, teal, pale mint, peach cheeks. Square, isolated full composition on a transparent background. No text, letters, UI, or logos.”
+## Voices, downloads, and privacy
 
-Nunito is self-hosted through Fontsource (SIL Open Font License). Transformers.js, Moonshine, and ONNX Runtime are MIT licensed. Kokoro and its JavaScript library are Apache-2.0 licensed. Phonemizer.js has an Apache-2.0 wrapper and embeds eSpeak NG (GPLv3); its license and upstream source links are included in `public/speech/THIRD_PARTY_NOTICES.txt`. Review dependency licenses before redistribution.
+Parent corner lets you choose the voice and listening helper and preview the reading voice.
 
-Speech assets are generated by `scripts/prepare-speech.mjs` before development and production builds, rather than committed. Sites hosting identity is stored in `.openai/hosting.json`.
+| Setting | Model or service | Approximate model weights |
+| --- | --- | --- |
+| Careful listening, default | Moonshine base English | 123 MB |
+| Quick listening | Moonshine tiny English | 51 MB |
+| Natural voice, default | Kokoro 82M, Heart voice (`af_heart`) | 93 MB |
+| Device voice | Browser speech synthesis | No LiliPad voice-model download |
 
-### Expanded practice libraries
+Sizes exclude supporting files. Model files download from Hugging Face on first use and cache when browser storage is available. Clearing or evicting that cache requires another download. The app also keeps a bounded cache of generated hint audio within an adventure.
 
-Word Hop, Sound Safari, and Sight Word Stars each contain 600 unique words. Sentence Pond and Sentence Scramble each contain 600 unique sentences. Story Trail contains 101 connected stories of six sentences each (606 sentence entries). The original opening items are preserved. Additional sentences and stories use authored templates with recurring vocabulary and patterns. Word banks are curated practice material, not standardized Fry/Dolch lists or a claim of grade-level suitability for every item.
+- Recorded audio is processed locally and is not uploaded or saved by LiliPad.
+- Progress, settings, and library positions use browser `localStorage` under `lilypad.v1`. Clearing site data removes them; they do not sync between devices.
+- The optional device voice prefers a local English voice, but browser-provided voices can use network services.
+- Speech recognition can mishear children's voices. A retry means the recognized text did not match; it is not a reading or pronunciation diagnosis. Read-together mode provides a human alternative.
 
-Rounds stay short: 10 words, 8 pond sentences, 6 scramble sentences, or the remainder of one story. Each activity saves its next library position in the existing `lilypad.v1` browser record. Completion and skips advance the cursor; skipped items earn no stars. Finishing the library loops to its beginning for review. Older records migrate to the item after the most recent completion in each activity.
+## iPad and browser support
 
-Additional word hints use a subset of the open-source CMU pronunciation dictionary for initial sounds and single-vowel examples; words with ambiguous pronunciations use whole-word hints. The dictionary data and BSD license attribution are in `public/reading-library-notices.txt`. No remote vocabulary service is called during practice.
+LiliPad is currently a web app. Its large buttons, touch tiles, navigation drawer, and scrolling reading panels are designed for tablets and smaller screens. It is not yet a native iPad app, and full offline support is not implemented.
+
+Microphone use requires **HTTPS or localhost**, permission to record, and a browser supporting WebAssembly, Web Workers, Web Audio, and AudioWorklet. A network connection is needed for the initial model downloads. Development speech checks used Chromium; performance and recognition still need testing with Lili on her actual iPad. Model speed and available memory depend on the device.
+
+If you open the development server from another device, `http://<computer-ip>:4321` does not provide the secure context required for microphone access. Use an HTTPS preview or deployment.
+
+## Troubleshooting
+
+| Problem | Try this |
+| --- | --- |
+| Microphone does not start | Check site permissions, use HTTPS/localhost, and tap Resume listening. Read together works without microphone access. |
+| First visit feels slow | Allow the selected models to finish downloading. Try Quick listening or Device voice on a slower device. |
+| The app keeps mishearing a word | Read in a quiet place, use the exact “The word is …” phrase, listen to a hint, or switch to Read together. |
+| Natural voice cannot load or play | Tap the offered Device voice button, or choose Device voice in Parent corner. |
+| Progress disappears | Use the same browser and site origin. Private browsing, clearing site data, or blocked storage can prevent persistence. |
+
+## Development
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev -- --port 4321` | Start the development server |
+| `npm test` | Test matching, segmentation, library positions, sentence tiles, settings, and voice cancellation |
+| `npm run typecheck` | Check TypeScript |
+| `npm run build` | Build the Cloudflare Workers-compatible app |
+| `npm start -- --port 4321` | Serve the production build locally with Wrangler |
+
+The stack is **React 19 + TypeScript, Vinext + Vite 8, Tailwind CSS 4, and shadcn/Radix UI**. Speech uses **Transformers.js 3.8.1, kokoro-js 1.2.1, and ONNX Runtime Web**, with single-thread WASM inference in separate workers. Moonshine uses an fp32 encoder and q8 decoder; Kokoro uses q8 weights. AudioWorklet captures mono audio, resampling to 16 kHz when needed. Stars use a short Web Audio chime.
+
+Key source files:
+
+- `lib/reading.ts`: original practice items, exact transcript matching, short rounds, and progress migration.
+- `lib/reading-vocabulary.ts`, `lib/reading-library.ts`: curated word pools and sentence/story templates.
+- `lib/reading-pronunciations.ts`: CMUdict subset used for additional sound hints.
+- `components/reading-game.tsx`, `components/sentence-builder.tsx`: game flow and touch puzzles.
+- `lib/microphone-capture.ts`, `lib/voice-segments.ts`: continuous capture and speech boundaries.
+- `lib/speech.worker.ts`, `lib/voice.worker.ts`: local recognition and hint generation.
+- `scripts/prepare-speech.mjs`: speech bundle generation and runtime notices.
+
+## License and credits
+
+LiliPad's original source is licensed under **GPL-3.0-only**; see [LICENSE](LICENSE). Copyright © 2026 nearbycoder. Third-party code, fonts, pronunciation data, and model weights retain their own licenses and notices; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The frog artwork is an original AI-generated illustration created for this project. Screenshots were captured from the running app. No child photographs or voice recordings are included.
+
+The phonemizer used by Kokoro embeds GPLv3 eSpeak NG. Generated speech bundles are excluded from Git. Distributors of generated bundles must preserve notices and supply the corresponding GPL source; linking a general upstream homepage alone does not establish that requirement is met. [Speech dependency sources and distribution notes](docs/speech-sources.md) identify the pinned wrapper and the remaining upstream provenance limitation.

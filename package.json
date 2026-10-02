@@ -74,5 +74,6 @@
     "miniflare": {
       "sharp": "0.35.4"
     }
-  }
+  },
+  "license": "GPL-3.0-only"
 }
